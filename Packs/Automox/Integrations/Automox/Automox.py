@@ -28,6 +28,7 @@ requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 VERSION = "1.0.0"
 USER_AGENT = f'ax:automox-PaloAltoNetworks-XSOAR-plugin/{VERSION}'
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'  # ISO8601 format with UTC, default in XSOAR
+DEFAULT_ORG_ID = demisto.params().get('org_id', None)
 
 ''' CLIENT CLASS '''
 class Client(BaseClient):
@@ -257,7 +258,7 @@ def test_module(client: Client) -> str:
     return message
 
 def action_on_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
     action = args.get('action', None)
 
@@ -269,7 +270,7 @@ def action_on_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> 
     )
 
 def action_on_vulnerability_sync_task(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     task_id = args.get('task_id', None)
     action = args.get('action', None)
 
@@ -281,7 +282,7 @@ def action_on_vulnerability_sync_task(client: Client, args: Dict[str, Any]) -> C
     )
 
 def delete_device(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
 
     result = client.delete_device(org_id)
 
@@ -292,7 +293,7 @@ def delete_device(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def delete_group(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
 
     result = client.delete_group(org_id)
 
@@ -303,7 +304,7 @@ def delete_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def get_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
 
     result = client.get_vulnerability_sync_batch(org_id, batch_id)
@@ -315,7 +316,7 @@ def get_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> Comman
     )
 
 def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     group_id = args.get('group_id', None)
 
     result = client.list_devices(org_id, group_id)
@@ -327,7 +328,7 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_groups(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
 
     result = client.list_groups(org_id)
 
@@ -338,7 +339,7 @@ def list_groups(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
 
     result = client.list_organization_users(org_id)
 
@@ -370,7 +371,7 @@ def list_organizations(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
 
     result = client.list_policies(org_id)
 
@@ -381,7 +382,7 @@ def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_vulnerability_sync_batches(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     limit = args.get('limit', None)
     page = args.get('page', None)
 
@@ -394,7 +395,7 @@ def list_vulnerability_sync_batches(client: Client, args: Dict[str, Any]) -> Com
     )
 
 def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
     status = args.get('status', None)
     limit = args.get('limit', None)
@@ -420,7 +421,7 @@ def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> Comma
     )
 
 def run_command(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     device_id = args.get('device_id', None)
     command_type_name = args.get('command', None)
     args = args.get('args', None)
@@ -438,7 +439,7 @@ def run_command(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def update_device(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     device_id = args.get('device_id', None)
     server_group_id = args.get('server_group_id', None)
     custom_name = args.get('custom_name', None)
@@ -464,7 +465,7 @@ def update_device(client: Client, args: Dict[str, Any]) -> CommandResults:
 
 def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     #server_group_id, custom_name, tags, ip_addrs, exception=False
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     group_id = args.get('group_id', None)
     color = args.get('color', None)
     name = args.get('name', None)
@@ -492,7 +493,7 @@ def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
 
 def upload_vulnerability_sync_file(client: Client, args: Dict[str, Any]) -> CommandResults:
     #server_group_id, custom_name, tags, ip_addrs, exception=False
-    org_id = args.get('org_id', None) or demisto.params().get('org_id', None)
+    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
     report_source = args.get('report_source', None)
     csv_file = args.get('csv_file', None)
     csv_file_name = args.get('csv_file_name', None)
