@@ -26,7 +26,7 @@ requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 
 ''' CONSTANTS '''
 VERSION = "1.0.0"
-USER_AGENT = f'ax:automox-PaloAltoNetworks-XSOAR-plugin/{VERSION}'
+USER_AGENT = f'ax:PaloAltoNetworks-XSOAR-plugin/{VERSION}'
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'  # ISO8601 format with UTC, default in XSOAR
 DEFAULT_ORG_ID = demisto.params().get('org_id', None)
 
