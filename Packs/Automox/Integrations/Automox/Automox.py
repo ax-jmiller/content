@@ -9,14 +9,9 @@ For API reference, visit: https://developer.automox.com/
 """
 
 import base64
-import json
 import string
 import traceback
-from ipaddress import ip_address
-from tokenize import String
 from typing import Any, Dict, List
-from venv import create
-from Packs.Base.Scripts.CommonServerPython.CommonServerPython import CommandResults
 
 import demistomock as demisto
 import requests
@@ -305,6 +300,72 @@ class Client(BaseClient):
 
 ''' HELPER FUNCTIONS '''
 
+def remove_keys(excluded_keys_list : List[str], data : List[Dict]) -> Dict[str, Any]:
+    for key_string in excluded_keys_list:
+        keys = key_string.split(".")
+        data = remove_key(keys, data)
+
+    return data
+
+def remove_key(keys_to_traverse, data):
+    try:
+        key = keys_to_traverse[0]
+
+        # If we've reached the last key in the list to traverse we can just drop it.
+        if len(keys_to_traverse) == 1:
+            del data[key]
+            return data
+
+        # Lists and dicts require us to move on with traversal.
+        if isinstance(data[key], dict):
+            data[key] = remove_key(keys_to_traverse[1:], data[key])
+        elif isinstance(data[key], list):
+            for i in range(len(data[key])):
+                data[key][i] = remove_key(keys_to_traverse[1:], data[key][i])
+        else:
+            del data[key]
+
+    except Exception as e:
+        demisto.error(f"Key '{key}' not found in Automox response.")
+
+    return data
+
+def sanitize_org(data) -> List[Dict]:
+    excluded_keys = [
+        'addr1',
+        'bill_overages',
+        'addr2',
+        'access_key',
+        'legacy_billing',
+        'sub_systems',
+        'stripe_cust',
+        'sub_plan',
+        'cc_brand',
+        'billing_interval',
+        'billing_phone',
+        'cc_name',
+        'city',
+        'zipcode',
+        'billing_name',
+        'metadata',
+        'sub_end_time',
+        'state',
+        'sub_create_time',
+        'cc_last',
+        'country',
+        'billing_email',
+        'next_bill_time',
+        'billing_interval_count',
+        'rate_id',
+        'trial_end_time',
+        'trial_expired',
+        'cc_exp',
+    ]
+
+    result = remove_keys(excluded_keys, data)
+
+    return result
+
 def get_default_server_group_id(client: Client):
     default_server_group_id = 0
     groups = client.list_groups()
@@ -440,32 +501,41 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
     excluded_keys = [
         'os_version_id',
         'instance_id',
-        'details',
+        'detail',
         'exception',
         'total_count',
     ]
 
-    for user in result:
+    for device in result:
         try:
             for key in excluded_keys:
-                user.pop(key)
+                device.pop(key)
         except Exception as e:
             demisto.error(f"Key '{key}' not found in Automox devices list response.")
 
     return CommandResults(
         outputs_prefix="Automox.Devices",
-        outputs_key_field='',
+        outputs_key_field='id',
         outputs=result,
     )
 
 def list_groups(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
 
-    result = client.list_groups(org_id)
+    result = client.list_groups(org_id, limit, page)
+
+    excluded_keys = [
+        "wsus_config",
+    ]
+
+    for i in range(len(result)):
+        result[i] = remove_keys(excluded_keys, result[i])
 
     return CommandResults(
         outputs_prefix="Automox.Groups",
-        outputs_key_field='',
+        outputs_key_field='id',
         outputs=result,
     )
 
@@ -479,18 +549,16 @@ def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResu
     excluded_keys = [
         'features',
         'prefs',
+        'orgs.trial_end_time',
+        'orgs.trial_expired',
     ]
 
-    for user in result:
-        try:
-            for key in excluded_keys:
-                user.pop(key)
-        except Exception as e:
-            demisto.error(f"Key '{key}' not found in Automox organization user list response.")
+    for i in range(len(result)):
+        result[i] = remove_keys(excluded_keys, result[i])
 
     return CommandResults(
         outputs_prefix="Automox.Users",
-        outputs_key_field='',
+        outputs_key_field='id',
         outputs=result,
     )
 
@@ -499,9 +567,43 @@ def list_organizations(client: Client, args: Dict[str, Any]) -> CommandResults:
     page = args.get(PAGE_IDENTIFIER, None)
     result = client.list_organizations(limit, page)
 
+    excluded_keys = [
+        'addr1',
+        'bill_overages',
+        'addr2',
+        'access_key',
+        'legacy_billing',
+        'sub_systems',
+        'stripe_cust',
+        'sub_plan',
+        'cc_brand',
+        'billing_interval',
+        'billing_phone',
+        'cc_name',
+        'city',
+        'zipcode',
+        'billing_name',
+        'metadata',
+        'sub_end_time',
+        'state',
+        'sub_create_time',
+        'cc_last',
+        'country',
+        'billing_email',
+        'next_bill_time',
+        'billing_interval_count',
+        'rate_id',
+        'trial_end_time',
+        'trial_expired',
+        'cc_exp',
+    ]
+
+    for i in range(len(result)):
+        result[i] = remove_keys(excluded_keys, result[i])
+
     return CommandResults(
         outputs_prefix="Automox.Organizations",
-        outputs_key_field='',
+        outputs_key_field='id',
         outputs=result,
     )
 
@@ -510,11 +612,22 @@ def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
     limit = args.get(LIMIT_IDENTIFIER, None)
     page = args.get(PAGE_IDENTIFIER, None)
 
+    excluded_keys = [
+        "configuration",
+        "schedule_days",
+        "schedule_weeks_of_month",
+        "schedule_months",
+        "schedule_time",
+    ]
+
     result = client.list_policies(org_id, limit, page)
+
+    for i in range(len(result)):
+        result[i] = remove_keys(excluded_keys, result[i])
 
     return CommandResults(
         outputs_prefix="Automox.Policies",
-        outputs_key_field='',
+        outputs_key_field='id',
         outputs=result,
     )
 

@@ -233,6 +233,23 @@ script:
       description: 'The last logged in user of a device'
       type: String
   - name: automox-organizations-list
+    arguments:
+      - name: limit
+        description: 'The maximum number of results to return per page.'
+        type: 'number'
+        isArray: false
+        required: false
+        default: false
+        defaultValue: 50
+        secret: false
+      - name: page
+        description: 'The page of results to return.'
+        type: 'number'
+        isArray: false
+        required: false
+        default: false
+        defaultValue: 0
+        secret: false
     deprecated: false
     description: 'List all Automox organizations based on user permissions.'
     execution: false
@@ -259,8 +276,25 @@ script:
       description: 'The organization device count'
       type: Number
   - name: automox-organization-users-list
-    deprecated: false
     description: 'List all Automox users within an organization.'
+    arguments:
+      - name: limit
+        description: 'The maximum number of results to return per page.'
+        type: 'number'
+        isArray: false
+        required: false
+        default: false
+        defaultValue: 50
+        secret: false
+      - name: page
+        description: 'The page of results to return.'
+        type: 'number'
+        isArray: false
+        required: false
+        default: false
+        defaultValue: 0
+        secret: false
+    deprecated: false
     execution: false
     outputs:
     - contextPath: Automox.Users.id
