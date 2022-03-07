@@ -15,6 +15,8 @@ import traceback
 from ipaddress import ip_address
 from tokenize import String
 from typing import Any, Dict, List
+from venv import create
+from Packs.Base.Scripts.CommonServerPython.CommonServerPython import CommandResults
 
 import demistomock as demisto
 import requests
@@ -28,7 +30,15 @@ requests.packages.urllib3.disable_warnings()  # pylint: disable=no-member
 VERSION = "1.0.0"
 USER_AGENT = f'ax:PaloAltoNetworks-XSOAR-plugin/{VERSION}'
 DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'  # ISO8601 format with UTC, default in XSOAR
-DEFAULT_ORG_ID = demisto.params().get('org_id', None)
+
+# Common keys used in command arguments
+ORG_IDENTIFIER = 'org_id'
+DEVICE_IDENTIFIER = 'device_id'
+GROUP_IDENTIFIER = 'group_id'
+LIMIT_IDENTIFIER = 'limit'
+PAGE_IDENTIFIER = 'page'
+
+DEFAULT_ORG_ID = demisto.params().get(ORG_IDENTIFIER, None)
 
 ''' CLIENT CLASS '''
 class Client(BaseClient):
@@ -40,6 +50,32 @@ class Client(BaseClient):
     Most calls use _http_request() that handles proxy, SSL verification, etc.
     For this  implementation, no special attributes defined
     """
+
+    def _get_list_results(self, method: string, url_suffix: string, params: dict) -> List[Dict]:
+        results = []
+
+        result_limit = int(params['limit'])
+        page_limit = 250 if int(params['limit']) > 250 else int(params['limit'])
+
+        params['limit'] = page_limit
+
+        i = 0
+
+        while result_limit > 0:
+            response = self._http_request(
+                method=method,
+                url_suffix=url_suffix,
+                params=params
+            )
+
+            results += response
+
+            if len(response) < page_limit or len(response) == 0:
+                break
+
+            result_limit -= len(response)
+
+        return results
 
     def action_on_vulnerability_sync_batch(self, org_id: int, batch_id: int, action: string):
         url_suffix = f"/orgs/{org_id}/tasks/batches/{batch_id}"
@@ -58,7 +94,7 @@ class Client(BaseClient):
 
     def action_on_vulnerability_sync_task(self, org_id: int, task_id: int, action: string):
         payload = {
-            "action": action
+            "action": action,
         }
 
         return self._http_request(
@@ -69,7 +105,7 @@ class Client(BaseClient):
 
     def delete_device(self, org_id: int, device_id: int) -> List[Dict]:
         params = {
-            "o" : org_id
+            "o" : org_id,
         }
 
         return self._http_request(
@@ -80,7 +116,7 @@ class Client(BaseClient):
 
     def delete_group(self, org_id: int, group_id: int) -> List[Dict]:
         params = {
-            "o" : org_id
+            "o" : org_id,
         }
 
         return self._http_request(
@@ -95,58 +131,80 @@ class Client(BaseClient):
             url_suffix=f"/orgs/{org_id}/tasks/batches/{batch_id}",
         )
 
-    def list_devices(self, org_id: int, group_id: int) -> List[Dict]:
+    def list_devices(self, org_id: int, group_id: int, limit: int, page: int) -> List[Dict]:
         params = {
             "o": org_id,
-            "groupId": group_id
+            "groupId": group_id,
+            "limit" : limit,
+            "page" : page,
         }
 
-        return self._http_request(
-            method='GET',
-            url_suffix='/servers',
+        results = self._get_list_results(
+            method="GET",
+            url_suffix="/servers",
             params=params
         )
 
-    def list_groups(self, org_id: int) -> List[Dict]:
+        return results
+
+    def list_groups(self, org_id: int, limit: int, page: int) -> List[Dict]:
         params = {
-            "o" : org_id
+            "o" : org_id,
+            "limit" : limit,
+            "page" : page,
         }
 
-        return self._http_request(
+        results = self._get_list_results(
             method='GET',
             url_suffix='/servergroups',
             params=params
         )
 
-    def list_organization_users(self, org_id:  int) -> List[Dict]:
+        return results
+
+    def list_organization_users(self, org_id: int, limit: int, page: int) -> List[Dict]:
         params = {
-            "o": org_id
+            "o": org_id,
+            "limit" : limit,
+            "page" : page,
         }
 
-        return self._http_request(
+        results = self._get_list_results(
             method='GET',
             url_suffix='/users',
             params=params
         )
 
-    def list_organizations(self) -> List[Dict]:
-        return self._http_request(
+        return results
+
+    def list_organizations(self, limit: int, page: int) -> List[Dict]:
+        params = {
+            "limit" : limit,
+            "page" : page,
+        }
+
+        results = self._get_list_results(
             method='GET',
             url_suffix="/orgs",
+            params=params
         )
+
+        return results
 
     def list_policies(self, org_id, limit, page) -> List[Dict]:
         params = {
             "limit" : limit,
             "page" : page,
-            "o" : org_id
+            "o" : org_id,
         }
 
-        return self._http_request(
+        results = self._get_list_results(
             method='GET',
             url_suffix="/policies",
             params=params,
         )
+
+        return results
 
     def list_vulnerability_sync_batches(self, org_id, limit, page) -> List[Dict]:
         params = {
@@ -154,11 +212,13 @@ class Client(BaseClient):
             "page" : page,
         }
 
-        return self._http_request(
+        results = self._get_list_results(
             method='GET',
             url_suffix=f"/orgs/{org_id}/tasks/batches",
             params=params,
         )
+
+        return results
 
     def list_vulnerability_sync_tasks(self, org_id, batch_id, status, limit, page) -> List[Dict]:
         params = {
@@ -168,14 +228,18 @@ class Client(BaseClient):
             "status": status
         }
 
-        return self._http_request(
+        results = self._get_list_results(
             method='GET',
             url_suffix=f"/orgs/{org_id}/tasks",
             params=params,
         )
 
+        return results
+
     def run_command(self, org_id, device_id, payload) -> List[Dict]:
-        params = {"o": org_id}
+        params = {
+            "o": org_id,
+        }
 
         return self._http_request(
             method='POST',
@@ -186,7 +250,7 @@ class Client(BaseClient):
 
     def update_device(self, org_id, device_id, payload) -> List[Dict]:
         params = {
-            "o": org_id
+            "o": org_id,
         }
 
         return self._http_request(
@@ -197,7 +261,9 @@ class Client(BaseClient):
         )
 
     def update_group(self, org_id, group_id, payload) -> List[Dict]:
-        params = {"o": org_id}
+        params = {
+            "o": org_id,
+        }
 
         return self._http_request(
             method='PUT',
@@ -212,6 +278,29 @@ class Client(BaseClient):
             url_suffix=f"/orgs/{org_id}/tasks/{type}/batches/upload",
             data=payload,
             files=files,
+        )
+
+    def get_group(self, org_id, group_id) -> List[Dict]:
+        params = {
+            "o": org_id,
+        }
+
+        return self._http_request(
+            method='GET',
+            url_suffix=f"/servergroups/{group_id}",
+            params=params
+        )
+
+    def create_group(self, org_id, payload) -> List[Dict]:
+        params = {
+            "o": org_id,
+        }
+
+        return self._http_request(
+            method='POST',
+            url_suffix=f"/servergroups",
+            params=params,
+            payload=payload,
         )
 
 ''' HELPER FUNCTIONS '''
@@ -245,9 +334,6 @@ def test_module(client: Client) -> str:
 
     message: str = ''
     try:
-        # TODO: ADD HERE some code to test connectivity and authentication to your service.
-        # This  should validate all the inputs given in the integration configuration panel,
-        # either manually or by using an API that uses them.
         client.list_organizations()
         message = 'ok'
     except DemistoException as e:
@@ -258,7 +344,7 @@ def test_module(client: Client) -> str:
     return message
 
 def action_on_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
     action = args.get('action', None)
 
@@ -270,7 +356,7 @@ def action_on_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> 
     )
 
 def action_on_vulnerability_sync_task(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     task_id = args.get('task_id', None)
     action = args.get('action', None)
 
@@ -281,30 +367,58 @@ def action_on_vulnerability_sync_task(client: Client, args: Dict[str, Any]) -> C
         readable_output=f"Action: {action} successfully performed on Automox task ID: {task_id}"
     )
 
-def delete_device(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+def create_group(client: Client, args: Dict[str, Any]) -> CommandResults:
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
 
-    result = client.delete_device(org_id)
+    color = args.get('color', None)
+    name = args.get('name', None)
+    notes = args.get('notes', None)
+    parent_server_group_id = args.get('parent_server_group_id', None)
+    #TODO: Check to see if create group requires some kind of special parsing for an array
+    policies = args.get('policies', None)
+    refresh_interval = args.get('refresh_interval', None)
+
+    payload = {
+        "color" : color,
+        "name" : name,
+        "notes" : notes,
+        "parent_server_group_id" : parent_server_group_id,
+        "policies" : policies,
+        "refresh_interval" : refresh_interval,
+    }
+
+    result = client.create_group(org_id, payload)
 
     return CommandResults(
-        outputs_prefix="Automox",
-        outputs_key_field='',
+        outputs_prefix="Automox.CreatedGroups",
+        outputs_key_field='id',
         outputs=result,
+    )
+
+def delete_device(client: Client, args: Dict[str, Any]) -> CommandResults:
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    device_id = args.get(DEVICE_IDENTIFIER, None)
+
+    result = client.delete_device(org_id, device_id)
+
+    return CommandResults(
+        mark_as_note=True,
+        readable_output=f"Device: {device_id} successfully deleted from Automox"
     )
 
 def delete_group(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    group_id = args.get(GROUP_IDENTIFIER, None)
 
-    result = client.delete_group(org_id)
+    result = client.delete_group(org_id, group_id)
 
     return CommandResults(
-        outputs_prefix="Automox",
-        outputs_key_field='',
-        outputs=result,
+        mark_as_note=True,
+        readable_output=f"Group: {group_id} successfully deleted from Automox"
     )
 
 def get_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
 
     result = client.get_vulnerability_sync_batch(org_id, batch_id)
@@ -316,10 +430,27 @@ def get_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> Comman
     )
 
 def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
-    group_id = args.get('group_id', None)
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    group_id = args.get(GROUP_IDENTIFIER, None)
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
 
-    result = client.list_devices(org_id, group_id)
+    result = client.list_devices(org_id, group_id, limit, page)
+
+    excluded_keys = [
+        'os_version_id',
+        'instance_id',
+        'details',
+        'exception',
+        'total_count',
+    ]
+
+    for user in result:
+        try:
+            for key in excluded_keys:
+                user.pop(key)
+        except Exception as e:
+            demisto.error(f"Key '{key}' not found in Automox devices list response.")
 
     return CommandResults(
         outputs_prefix="Automox.Devices",
@@ -328,20 +459,22 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_groups(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
 
     result = client.list_groups(org_id)
 
     return CommandResults(
-        outputs_prefix="Automox",
+        outputs_prefix="Automox.Groups",
         outputs_key_field='',
         outputs=result,
     )
 
 def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
 
-    result = client.list_organization_users(org_id)
+    result = client.list_organization_users(org_id, limit, page)
 
     excluded_keys = [
         'features',
@@ -362,7 +495,9 @@ def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResu
     )
 
 def list_organizations(client: Client, args: Dict[str, Any]) -> CommandResults:
-    result = client.list_organizations()
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
+    result = client.list_organizations(limit, page)
 
     return CommandResults(
         outputs_prefix="Automox.Organizations",
@@ -371,9 +506,11 @@ def list_organizations(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
 
-    result = client.list_policies(org_id)
+    result = client.list_policies(org_id, limit, page)
 
     return CommandResults(
         outputs_prefix="Automox.Policies",
@@ -382,9 +519,9 @@ def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def list_vulnerability_sync_batches(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
-    limit = args.get('limit', None)
-    page = args.get('page', None)
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
 
     result = client.list_vulnerability_sync_batches(org_id, limit, page)
 
@@ -395,11 +532,11 @@ def list_vulnerability_sync_batches(client: Client, args: Dict[str, Any]) -> Com
     )
 
 def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
     status = args.get('status', None)
-    limit = args.get('limit', None)
-    page = args.get('page', None)
+    limit = args.get(LIMIT_IDENTIFIER, None)
+    page = args.get(PAGE_IDENTIFIER, None)
 
     result = client.list_vulnerability_sync_tasks(org_id, batch_id, status, limit, page)
 
@@ -421,8 +558,8 @@ def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> Comma
     )
 
 def run_command(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
-    device_id = args.get('device_id', None)
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    device_id = args.get(DEVICE_IDENTIFIER, None)
     command_type_name = args.get('command', None)
     args = args.get('args', None)
 
@@ -439,8 +576,8 @@ def run_command(client: Client, args: Dict[str, Any]) -> CommandResults:
     )
 
 def update_device(client: Client, args: Dict[str, Any]) -> CommandResults:
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
-    device_id = args.get('device_id', None)
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    device_id = args.get(DEVICE_IDENTIFIER, None)
     server_group_id = args.get('server_group_id', None)
     custom_name = args.get('custom_name', None)
     tags = args.get('tags', None)
@@ -458,21 +595,23 @@ def update_device(client: Client, args: Dict[str, Any]) -> CommandResults:
     result = client.update_device(org_id, device_id, payload)
 
     return CommandResults(
-        outputs_prefix="Automox",
-        outputs_key_field='',
-        outputs=result,
+        mark_as_note=True,
+        readable_output=f"Device: {device_id} successfully updated in Automox"
     )
 
 def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
-    #server_group_id, custom_name, tags, ip_addrs, exception=False
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
-    group_id = args.get('group_id', None)
-    color = args.get('color', None)
-    name = args.get('name', None)
-    notes = args.get('notes', None)
-    parent_server_group_id = args.get('parent_server_group_id', None)
-    policies = args.get('policies', None)
-    refresh_interval = args.get('refresh_interval', None)
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
+    group_id = args.get(GROUP_IDENTIFIER, None)
+
+    # Get original group to coalesce updated values to
+    original_group = client.get_group(org_id, group_id)
+
+    color = args.get('color', None) or original_group['ui_color']
+    name = args.get('name', None) or original_group['name']
+    notes = args.get('notes', None) or original_group['notes']
+    parent_server_group_id = args.get('parent_server_group_id', None) or original_group['parent_server_group_id']
+    policies = args.get('policies', None) or original_group['policies']
+    refresh_interval = args.get('refresh_interval', None) or original_group['refresh_interval']
 
     payload = {
         "color" : color,
@@ -486,14 +625,13 @@ def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     result = client.update_group(org_id, group_id, payload)
 
     return CommandResults(
-        outputs_prefix="Automox",
-        outputs_key_field='',
-        outputs=result,
+        mark_as_note=True,
+        readable_output=f"Group: {group_id} ({name}) successfully updated in Automox."
     )
 
 def upload_vulnerability_sync_file(client: Client, args: Dict[str, Any]) -> CommandResults:
     #server_group_id, custom_name, tags, ip_addrs, exception=False
-    org_id = args.get('org_id', None) or DEFAULT_ORG_ID
+    org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     report_source = args.get('report_source', None)
     csv_file = args.get('csv_file', None)
     csv_file_name = args.get('csv_file_name', None)
@@ -565,21 +703,17 @@ def main() -> None:
         elif demisto.command() == 'automox-vulnerability-sync-task-action':
             return_results(action_on_vulnerability_sync_task(client, demisto.args()))
         elif demisto.command() == 'automox-group-create':
-            # return_results(list_devices(client, demisto.args()))
-            return
+            return_results(create_group(client, demisto.args()))
         elif demisto.command() == 'automox-device-delete':
-            # return_results(list_devices(client, demisto.args()))
-            return
+            return_results(delete_device(client, demisto.args()))
         elif demisto.command() == 'automox-group-delete':
-            # return_results(list_devices(client, demisto.args()))
-            return
+            return_results(delete_group(client, demisto.args()))
         elif demisto.command() == 'automox-vulnerability-sync-batch-get':
             return_results(get_vulnerability_sync_batch(client, demisto.args()))
         elif demisto.command() == 'automox-devices-list':
             return_results(list_devices(client, demisto.args()))
         elif demisto.command() == 'automox-groups-list':
-            # return_results(list_devices(client, demisto.args()))
-            return
+            return_results(list_groups(client, demisto.args()))
         elif demisto.command() == 'automox-organization-users-list':
             return_results(list_organization_users(client, demisto.args()))
         elif demisto.command() == 'automox-organizations-list':
@@ -593,11 +727,9 @@ def main() -> None:
         elif demisto.command() == 'automox-command-run':
             return_results(run_command(client, demisto.args()))
         elif demisto.command() == 'automox-device-update':
-            # return_results(list_devices(client, demisto.args()))
-            return
+            return_results(update_device(client, demisto.args()))
         elif demisto.command() == 'automox-group-update':
-            # return_results(list_devices(client, demisto.args()))
-            return
+            return_results(update_group(client, demisto.args()))
         elif demisto.command() == 'automox-vulnerability-sync-file-upload':
             return_results(upload_vulnerability_sync_file(client, demisto.args()))
 
