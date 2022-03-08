@@ -96,7 +96,7 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='PATCH',
+            method="PATCH",
             url_suffix=f"/orgs/{org_id}/tasks/{task_id}",
             payload=payload,
             resp_type="response",
@@ -348,42 +348,6 @@ def remove_key(keys_to_traverse, data):
         demisto.error(f"Key '{key}' not found in Automox response.")
 
     return data
-
-def sanitize_org(data) -> List[Dict]:
-    excluded_keys = [
-        'addr1',
-        'bill_overages',
-        'addr2',
-        'access_key',
-        'legacy_billing',
-        'sub_systems',
-        'stripe_cust',
-        'sub_plan',
-        'cc_brand',
-        'billing_interval',
-        'billing_phone',
-        'cc_name',
-        'city',
-        'zipcode',
-        'billing_name',
-        'metadata',
-        'sub_end_time',
-        'state',
-        'sub_create_time',
-        'cc_last',
-        'country',
-        'billing_email',
-        'next_bill_time',
-        'billing_interval_count',
-        'rate_id',
-        'trial_end_time',
-        'trial_expired',
-        'cc_exp',
-    ]
-
-    result = remove_keys(excluded_keys, data)
-
-    return result
 
 def get_default_server_group_id(client: Client, org_id):
     default_server_group_id = None
@@ -754,10 +718,8 @@ def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     parent_server_group_id = args.get('parent_server_group_id', None) or original_group['parent_server_group_id']
     refresh_interval = args.get('refresh_interval', None) or original_group['refresh_interval']
 
-    policy_list = args.get('policies', "").split(",")
-    map(str.strip, policy_list)
-
-    policies = policy_list or original_group['policies']
+    policy_input = args.get('policies', None)
+    policies = map(str.strip, policy_input.split(",")) if policy_input else original_group['policies']
 
     payload = {
         "color" : color,
@@ -828,7 +790,6 @@ def main() -> None:
 
     demisto.debug(f'Command being called is {demisto.command()}')
     try:
-
         headers: Dict = {
             "Authorization" : f"Bearer {api_key}",
             "User-Agent" : USER_AGENT

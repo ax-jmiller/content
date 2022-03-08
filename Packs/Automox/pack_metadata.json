@@ -1,11 +1,11 @@
 {
     "name": "Automox",
     "description": "Automox Content Pack for Demisto",
-    "support": "xsoar",
+    "support": "partner",
     "currentVersion": "1.0.0",
-    "author": "Cortex XSOAR",
-    "url": "https://www.paloaltonetworks.com/cortex",
-    "email": "",
+    "author": "Automox Inc.",
+    "url": "https://www.automox.com/",
+    "email": "support@automox.com",
     "categories": [
         "Endpoint"
     ],
