@@ -853,7 +853,7 @@ script:
       description: 'Identifier of server group'
       type: Number
       isArray: false
-      required: false
+      required: true
       default: false
       secret: false
     - name: tags
@@ -867,9 +867,8 @@ script:
       description: 'IP address of the device'
       type: String
       isArray: false
-      required: true
+      required: false
       default: false
-      defaultValue: false
       secret: false
     deprecated: false
     execution: false
@@ -912,7 +911,7 @@ script:
       description: 'The name of the group'
       type: String
     - contextPath: Automox.Groups.refresh_interval
-      description: 'Frequency of device refreshes in minutes'
+      description: 'Frequency of device refreshes in minutes.'
       type: Number
     - contextPath: Automox.Groups.parent_server_group_id
       description: 'Identifier of parent group'
@@ -960,7 +959,7 @@ script:
       description: 'Identifier of the parent group. Defaults to default group id if omitted.'
       type: Number
       isArray: false
-      required: true
+      required: false
       default: false
       secret: false
     - name: policies
@@ -971,12 +970,11 @@ script:
       default: false
       secret: false
     - name: refresh_interval
-      description: 'Frequency of device refreshes in minutes'
+      description: 'Frequency of device refreshes in minutes. (Must be between 360 and 1440)'
       type: Number
       isArray: false
       required: true
       default: false
-      defaultValue: false
       secret: false
     deprecated: false
     execution: false
@@ -1032,7 +1030,7 @@ script:
       description: 'Name of the group'
       type: String
       isArray: false
-      required: true
+      required: false
       default: false
       secret: false
     - name: notes
@@ -1060,9 +1058,8 @@ script:
       description: 'Frequency of device refreshes in minutes'
       type: Number
       isArray: false
-      required: true
+      required: false
       default: false
-      defaultValue: false
       secret: false
     deprecated: false
     execution: false

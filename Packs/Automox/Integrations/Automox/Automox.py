@@ -54,14 +54,16 @@ class Client(BaseClient):
 
         params['limit'] = page_limit
 
-        i = 0
-
         while result_limit > 0:
             response = self._http_request(
                 method=method,
                 url_suffix=url_suffix,
                 params=params
             )
+
+            # This is necessary for vuln sync, since those responses have metadata & data keys.
+            if isinstance(response, dict) and isinstance(response['data'], list):
+                response = response['data']
 
             results += response
 
@@ -85,6 +87,7 @@ class Client(BaseClient):
         return self._http_request(
             method='POST',
             url_suffix=url_suffix,
+            resp_type="response",
         )
 
     def action_on_vulnerability_sync_task(self, org_id: int, task_id: int, action: string):
@@ -96,6 +99,7 @@ class Client(BaseClient):
             method='PATCH',
             url_suffix=f"/orgs/{org_id}/tasks/{task_id}",
             payload=payload,
+            resp_type="response",
         )
 
     def delete_device(self, org_id: int, device_id: int) -> List[Dict]:
@@ -104,9 +108,10 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='DELETE',
-            url_suffix='/servers/{device_id}',
-            params=params
+            method="DELETE",
+            url_suffix=f"/servers/{device_id}",
+            params=params,
+            resp_type="response",
         )
 
     def delete_group(self, org_id: int, group_id: int) -> List[Dict]:
@@ -115,9 +120,10 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='DELETE',
-            url_suffix='/servergroups/{group_id}',
-            params=params
+            method="DELETE",
+            url_suffix=f"/servergroups/{group_id}",
+            params=params,
+            resp_type="response",
         )
 
     def get_vulnerability_sync_batch(self, org_id: int, batch_id: int) -> List[Dict]:
@@ -150,8 +156,8 @@ class Client(BaseClient):
         }
 
         results = self._get_list_results(
-            method='GET',
-            url_suffix='/servergroups',
+            method="GET",
+            url_suffix="/servergroups",
             params=params
         )
 
@@ -165,8 +171,8 @@ class Client(BaseClient):
         }
 
         results = self._get_list_results(
-            method='GET',
-            url_suffix='/users',
+            method="GET",
+            url_suffix="/users",
             params=params
         )
 
@@ -179,7 +185,7 @@ class Client(BaseClient):
         }
 
         results = self._get_list_results(
-            method='GET',
+            method="GET",
             url_suffix="/orgs",
             params=params
         )
@@ -194,7 +200,7 @@ class Client(BaseClient):
         }
 
         results = self._get_list_results(
-            method='GET',
+            method="GET",
             url_suffix="/policies",
             params=params,
         )
@@ -208,7 +214,7 @@ class Client(BaseClient):
         }
 
         results = self._get_list_results(
-            method='GET',
+            method="GET",
             url_suffix=f"/orgs/{org_id}/tasks/batches",
             params=params,
         )
@@ -224,7 +230,7 @@ class Client(BaseClient):
         }
 
         results = self._get_list_results(
-            method='GET',
+            method="GET",
             url_suffix=f"/orgs/{org_id}/tasks",
             params=params,
         )
@@ -237,7 +243,7 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='POST',
+            method="POST",
             url_suffix=f"/servers/{device_id}/queues",
             params=params,
             data=payload,
@@ -249,10 +255,11 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='PUT',
+            method="PUT",
             url_suffix=f"/servers/{device_id}",
             params=params,
-            data=payload,
+            json_data=payload,
+            resp_type="response",
         )
 
     def update_group(self, org_id, group_id, payload) -> List[Dict]:
@@ -261,15 +268,16 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='PUT',
+            method="PUT",
             url_suffix=f"/servergroups/{group_id}",
             params=params,
-            data=payload,
+            json_data=payload,
+            resp_type="response",
         )
 
     def upload_vulnerability_sync_file(self, org_id, type, payload, files) -> List[Dict]:
         return self._http_request(
-            method='POST',
+            method="POST",
             url_suffix=f"/orgs/{org_id}/tasks/{type}/batches/upload",
             data=payload,
             files=files,
@@ -281,8 +289,19 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='GET',
+            method="GET",
             url_suffix=f"/servergroups/{group_id}",
+            params=params
+        )
+
+    def get_device(self, org_id, device_id) -> List[Dict]:
+        params = {
+            "o": org_id,
+        }
+
+        return self._http_request(
+            method="GET",
+            url_suffix=f"/servers/{device_id}",
             params=params
         )
 
@@ -292,10 +311,10 @@ class Client(BaseClient):
         }
 
         return self._http_request(
-            method='POST',
+            method="POST",
             url_suffix=f"/servergroups",
             params=params,
-            payload=payload,
+            data=payload,
         )
 
 ''' HELPER FUNCTIONS '''
@@ -366,14 +385,19 @@ def sanitize_org(data) -> List[Dict]:
 
     return result
 
-def get_default_server_group_id(client: Client):
-    default_server_group_id = 0
-    groups = client.list_groups()
+def get_default_server_group_id(client: Client, org_id):
+    default_server_group_id = None
+    page = 0
 
-    for group in groups:
-        if not group.get("name"):
-            default_server_group_id = group.get("id")
-            break
+    while default_server_group_id == None:
+        groups = client.list_groups(org_id, 250, page)
+
+        for group in groups:
+            if not group.get("name"):
+                default_server_group_id = group.get("id")
+                break
+
+        page += 1
 
     return default_server_group_id
 
@@ -398,7 +422,7 @@ def test_module(client: Client) -> str:
         client.list_organizations()
         message = 'ok'
     except DemistoException as e:
-        if 'Forbidden' in str(e) or 'Authorization' in str(e):  # TODO: make sure you capture authentication errors
+        if 'Forbidden' in str(e) or 'Authorization' in str(e):
             message = 'Authorization Error: make sure API Key is correctly set'
         else:
             raise e
@@ -431,20 +455,23 @@ def action_on_vulnerability_sync_task(client: Client, args: Dict[str, Any]) -> C
 def create_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
 
+    default_group_id = get_default_server_group_id(client, org_id)
+
     color = args.get('color', None)
     name = args.get('name', None)
     notes = args.get('notes', None)
-    parent_server_group_id = args.get('parent_server_group_id', None)
-    #TODO: Check to see if create group requires some kind of special parsing for an array
-    policies = args.get('policies', None)
     refresh_interval = args.get('refresh_interval', None)
+    parent_server_group_id = args.get('parent_server_group_id', None) or default_group_id
+
+    policy_list = args.get('policies', "").split(",")
+    map(str.strip, policy_list)
 
     payload = {
         "color" : color,
         "name" : name,
         "notes" : notes,
         "parent_server_group_id" : parent_server_group_id,
-        "policies" : policies,
+        "policies" : policy_list,
         "refresh_interval" : refresh_interval,
     }
 
@@ -506,12 +533,8 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
         'total_count',
     ]
 
-    for device in result:
-        try:
-            for key in excluded_keys:
-                device.pop(key)
-        except Exception as e:
-            demisto.error(f"Key '{key}' not found in Automox devices list response.")
+    for i in range(len(result)):
+        result[i] = remove_keys(excluded_keys, result[i])
 
     return CommandResults(
         outputs_prefix="Automox.Devices",
@@ -641,7 +664,7 @@ def list_vulnerability_sync_batches(client: Client, args: Dict[str, Any]) -> Com
     return CommandResults(
         outputs_prefix="Automox.VulnSyncBatches",
         outputs_key_field='id',
-        outputs=result['data'],
+        outputs=result,
     )
 
 def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> CommandResults:
@@ -657,17 +680,13 @@ def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> Comma
         'partner_user_id',
     ]
 
-    try:
-        for task in result['data']:
-            for key in excluded_keys:
-                task.pop(key)
-    except Exception as e:
-        demisto.error(f"Key '{key}' not found in Automox Vulnerability Sync task list response.")
+    for i in range(len(result)):
+        result[i] = remove_keys(excluded_keys, result[i])
 
     return CommandResults(
         outputs_prefix="Automox.VulnSyncTasks",
         outputs_key_field='id',
-        outputs=result['data'],
+        outputs=result,
     )
 
 def run_command(client: Client, args: Dict[str, Any]) -> CommandResults:
@@ -691,16 +710,26 @@ def run_command(client: Client, args: Dict[str, Any]) -> CommandResults:
 def update_device(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     device_id = args.get(DEVICE_IDENTIFIER, None)
-    server_group_id = args.get('server_group_id', None)
-    custom_name = args.get('custom_name', None)
-    tags = args.get('tags', None)
-    ip_addrs = args.get('ip_addrs', None)
-    exception = args.get('exception', None)
+
+    # Get original group to coalesce updated values to
+    original_device = client.get_device(org_id, device_id)
+
+    tag_list = args.get('tags', None).split(",")
+    map(str.strip, tag_list)
+
+    ip_list = args.get('ip_addrs', None).split(",")
+    map(str.strip, ip_list)
+
+    server_group_id = args.get('server_group_id', None) or original_device['server_group_id']
+    custom_name = args.get('custom_name', None) or original_device['custom_name']
+    tags = tag_list or original_device['tags']
+    ip_addrs = ip_list or original_device['ip_addrs']
+    exception = args.get('exception', None) or original_device['exception']
 
     payload = {
         "server_group_id" : server_group_id,
         "ip_addrs" : ip_addrs,
-        "exception" : exception,
+        "exception" : bool(exception),
         "tags" : tags,
         "custom_name" : custom_name,
     }
@@ -723,8 +752,12 @@ def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     name = args.get('name', None) or original_group['name']
     notes = args.get('notes', None) or original_group['notes']
     parent_server_group_id = args.get('parent_server_group_id', None) or original_group['parent_server_group_id']
-    policies = args.get('policies', None) or original_group['policies']
     refresh_interval = args.get('refresh_interval', None) or original_group['refresh_interval']
+
+    policy_list = args.get('policies', "").split(",")
+    map(str.strip, policy_list)
+
+    policies = policy_list or original_group['policies']
 
     payload = {
         "color" : color,
