@@ -65,22 +65,25 @@ class Client(BaseClient):
             if isinstance(response, dict) and isinstance(response['data'], list):
                 response = response['data']
 
-            results += response
+            if (result_limit < page_limit):
+                results += response[:result_limit]
+            else:
+                results += response
 
-            if len(response) < page_limit or len(response) == 0:
+            if len(response) < page_limit:
                 break
 
             result_limit -= len(response)
 
+            params['page'] += 1
+
         return results
 
     def action_on_vulnerability_sync_batch(self, org_id: int, batch_id: int, action: string):
-        url_suffix = f"/orgs/{org_id}/tasks/batches/{batch_id}"
+        url_suffix = f"/orgs/{org_id}/tasks/batches/{batch_id}/"
 
-        if action == "accept":
-            url_suffix += "/accept"
-        elif action == "reject":
-            url_suffix += "/reject"
+        if action in ["accept", "reject"]:
+            url_suffix += f"{action}"
         else:
             raise ValueError("Action argument must be a string equal to either 'accept' or 'reject'")
 
@@ -484,8 +487,8 @@ def get_vulnerability_sync_batch(client: Client, args: Dict[str, Any]) -> Comman
 def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     group_id = args.get(GROUP_IDENTIFIER, None)
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
 
     result = client.list_devices(org_id, group_id, limit, page)
 
@@ -508,8 +511,8 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
 
 def list_groups(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
 
     result = client.list_groups(org_id, limit, page)
 
@@ -528,8 +531,8 @@ def list_groups(client: Client, args: Dict[str, Any]) -> CommandResults:
 
 def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
 
     result = client.list_organization_users(org_id, limit, page)
 
@@ -550,8 +553,8 @@ def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResu
     )
 
 def list_organizations(client: Client, args: Dict[str, Any]) -> CommandResults:
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
     result = client.list_organizations(limit, page)
 
     excluded_keys = [
@@ -596,8 +599,8 @@ def list_organizations(client: Client, args: Dict[str, Any]) -> CommandResults:
 
 def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
 
     excluded_keys = [
         "configuration",
@@ -620,8 +623,8 @@ def list_policies(client: Client, args: Dict[str, Any]) -> CommandResults:
 
 def list_vulnerability_sync_batches(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
 
     result = client.list_vulnerability_sync_batches(org_id, limit, page)
 
@@ -635,8 +638,8 @@ def list_vulnerability_sync_tasks(client: Client, args: Dict[str, Any]) -> Comma
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     batch_id = args.get('batch_id', None)
     status = args.get('status', None)
-    limit = args.get(LIMIT_IDENTIFIER, None)
-    page = args.get(PAGE_IDENTIFIER, None)
+    limit = int(args.get(LIMIT_IDENTIFIER, None))
+    page = int(args.get(PAGE_IDENTIFIER, None))
 
     result = client.list_vulnerability_sync_tasks(org_id, batch_id, status, limit, page)
 
