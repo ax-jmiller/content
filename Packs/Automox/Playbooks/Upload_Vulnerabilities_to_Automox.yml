@@ -1,8 +1,8 @@
 id: Upload Vulnerabilities to Automox
 version: -1
 fromversion: 6.0.0
-name: Upload Vulnerabilities to Automox
-description: This sub-playbook takes the entryId of a vendor-generated vulnerability report CSV and uploads it to Automox for remediation.
+name: Upload Vulnerability Report to Automox
+description: This sub-playbook takes the entryId of a vulnerability report CSV file and uploads it to Automox for remediation.
 tags:
 - Endpoint
 - Vulnerability
@@ -355,7 +355,7 @@ inputs:
 - key: entry_id
   value: {}
   required: true
-  description: The entryId of a vendor-generated vulnerability report.
+  description: "The entryId of a vulnerability report CSV file. Currently accepted formats can be found in the Automox documentation: https://support.automox.com/help/exporting-vulnerability-scanner-reports"
   playbookInputQuery:
 outputs: []
 tests:
