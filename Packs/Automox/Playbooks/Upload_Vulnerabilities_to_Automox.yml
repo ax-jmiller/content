@@ -355,7 +355,7 @@ inputs:
 - key: entry_id
   value: {}
   required: true
-  description: The entryId of a vendor-generated vulnerability report.
+  description: "The entryId of a vulnerability report CSV file. Currently accepted formats can be found in the Automox documentation: https://support.automox.com/help/exporting-vulnerability-scanner-reports"
   playbookInputQuery:
 outputs: []
 tests:
