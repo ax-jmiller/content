@@ -26,8 +26,7 @@
         "Patch",
         "Endpoint",
         "Vulnerability",
-        "CVE",
-        "Vulnerability Sync"
+        "CVE"
     ],
     "marketplaces": [
         "xsoar",
