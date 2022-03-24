@@ -1,5 +1,5 @@
 # Automox Content Pack for XSOAR
-The Automox Content Pack for XSOAR empowers users by providing the resources to remediate vulnerabilities and administrate your IT organization with ease. Use the Automox integration to create device groups, update devices, and run policies. This content pack also includes a sub-playbook to use in your vulnerability remediation workflows to identify vulnerable devices and automatically generate the remediation tasks necessary to patch them in Automox.
+The Automox Content Pack for XSOAR empowers users by providing the resources to administrate your IT organization, and remediate vulnerabilities with ease. Use the Automox integration to create device groups, update devices, and run policies. This content pack also includes a sub-playbook to use in your vulnerability remediation workflows to identify vulnerable devices and automatically generate the remediation tasks necessary to patch them in the Automox platform.
 
 # What does this pack do?
 - Upload Vulnerability Reports
