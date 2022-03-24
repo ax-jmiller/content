@@ -1,5 +1,5 @@
 Use the Automox integration to create device groups, update devices, run policies, and remediate vulnerabilities of devices through the Automox platform.
-This integration was integrated and tested with version 2022-02-24 of Automox
+This integration was integrated and tested as of 2022-03-21 with the Automox API
 
 ## Configure Automox on Cortex XSOAR
 
