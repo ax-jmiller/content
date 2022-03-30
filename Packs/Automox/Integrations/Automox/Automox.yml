@@ -234,22 +234,22 @@ script:
       type: String
   - name: automox-organizations-list
     arguments:
-      - name: limit
-        description: 'The maximum number of results to return per page.'
-        type: 'number'
-        isArray: false
-        required: false
-        default: false
-        defaultValue: 50
-        secret: false
-      - name: page
-        description: 'The page of results to return.'
-        type: 'number'
-        isArray: false
-        required: false
-        default: false
-        defaultValue: 0
-        secret: false
+    - name: limit
+      description: 'The maximum number of results to return per page.'
+      type: 'number'
+      isArray: false
+      required: false
+      default: false
+      defaultValue: 50
+      secret: false
+    - name: page
+      description: 'The page of results to return.'
+      type: 'number'
+      isArray: false
+      required: false
+      default: false
+      defaultValue: 0
+      secret: false
     deprecated: false
     description: 'List all Automox organizations based on user permissions.'
     execution: false
@@ -278,22 +278,22 @@ script:
   - name: automox-organization-users-list
     description: 'List all Automox users within an organization.'
     arguments:
-      - name: limit
-        description: 'The maximum number of results to return per page.'
-        type: 'number'
-        isArray: false
-        required: false
-        default: false
-        defaultValue: 50
-        secret: false
-      - name: page
-        description: 'The page of results to return.'
-        type: 'number'
-        isArray: false
-        required: false
-        default: false
-        defaultValue: 0
-        secret: false
+    - name: limit
+      description: 'The maximum number of results to return per page.'
+      type: 'number'
+      isArray: false
+      required: false
+      default: false
+      defaultValue: 50
+      secret: false
+    - name: page
+      description: 'The page of results to return.'
+      type: 'number'
+      isArray: false
+      required: false
+      default: false
+      defaultValue: 0
+      secret: false
     deprecated: false
     execution: false
     outputs:
@@ -1087,7 +1087,7 @@ script:
   script: '-'
   type: python
   subtype: python3
-  dockerimage: demisto/python3:3.10.1.26972
+  dockerimage: demisto/python3:3.10.4.27798
 fromversion: 5.5.0
 tests:
 - No tests (auto formatted)

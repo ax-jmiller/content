@@ -101,7 +101,7 @@ class Client(BaseClient):
         return self._http_request(
             method="PATCH",
             url_suffix=f"/orgs/{org_id}/tasks/{task_id}",
-            payload=payload,
+            data=payload,
             resp_type="response",
         )
 
@@ -322,14 +322,14 @@ class Client(BaseClient):
 
 ''' HELPER FUNCTIONS '''
 
-def remove_keys(excluded_keys_list : List[str], data : List[Dict]) -> Dict[str, Any]:
+def remove_keys(excluded_keys_list: List[str], data: Dict[str, Any]) -> Dict[str, Any]:
     for key_string in excluded_keys_list:
         keys = key_string.split(".")
         data = remove_key(keys, data)
 
     return data
 
-def remove_key(keys_to_traverse, data):
+def remove_key(keys_to_traverse:List[str], data: Dict[str, Any]) -> Dict[str, Any]:
     try:
         key = keys_to_traverse[0]
 
@@ -422,13 +422,11 @@ def action_on_vulnerability_sync_task(client: Client, args: Dict[str, Any]) -> C
 def create_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
 
-    default_group_id = get_default_server_group_id(client, org_id)
-
     color = args.get('color', None)
     name = args.get('name', None)
     notes = args.get('notes', None)
     refresh_interval = args.get('refresh_interval', None)
-    parent_server_group_id = args.get('parent_server_group_id', None) or default_group_id
+    parent_server_group_id = args.get('parent_server_group_id', None) or get_default_server_group_id(client, org_id)
 
     policy_list = args.get('policies', "").split(",")
     map(str.strip, policy_list)
@@ -721,8 +719,8 @@ def update_group(client: Client, args: Dict[str, Any]) -> CommandResults:
     parent_server_group_id = args.get('parent_server_group_id', None) or original_group['parent_server_group_id']
     refresh_interval = args.get('refresh_interval', None) or original_group['refresh_interval']
 
-    policy_input = args.get('policies', None)
-    policies = map(str.strip, policy_input.split(",")) if policy_input else original_group['policies']
+    policies = args.get('policies', None)
+    map(str.strip, policies.split(",")) if policies else original_group['policies']
 
     payload = {
         "color" : color,
