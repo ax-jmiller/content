@@ -491,6 +491,7 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
     result = client.list_devices(org_id, group_id, limit, page)
 
     excluded_keys = [
+        'compatibility_checks',
         'os_version_id',
         'instance_id',
         'detail',
@@ -539,6 +540,7 @@ def list_organization_users(client: Client, args: Dict[str, Any]) -> CommandResu
         'prefs',
         'orgs.trial_end_time',
         'orgs.trial_expired',
+        'orgs.access_key',
     ]
 
     for i in range(len(result)):
@@ -742,30 +744,35 @@ def upload_vulnerability_sync_file(client: Client, args: Dict[str, Any]) -> Comm
     #server_group_id, custom_name, tags, ip_addrs, exception=False
     org_id = args.get(ORG_IDENTIFIER, None) or DEFAULT_ORG_ID
     report_source = args.get('report_source', None)
-    csv_file = args.get('csv_file', None)
+    entry_id = args.get('entry_id', None)
     csv_file_name = args.get('csv_file_name', None)
     task_type = args.get('type', None) or "patch"
 
-    try:
-        csv_file = base64.b64decode(csv_file)
-    except:
-        demisto.error("CSV file could not be decoded from BASE64.")
+    res = demisto.getFilePath(entry_id)
 
-    payload = {
-        "report_source" : report_source,
-    }
+    if not res:
+        return_error(f"File entry: {entry_id} not found")
 
-    files = [
-        ('file', (csv_file_name, csv_file, 'text/csv'))
-    ]
+    with open(res['path'], 'rb') as csv_file:
+        payload = {
+            "report_source" : report_source,
+        }
 
-    result = client.upload_vulnerability_sync_file(org_id, task_type, payload, files)
+        files = [
+            ('file', (csv_file_name, csv_file, 'text/csv'))
+        ]
 
-    return CommandResults(
-        outputs_prefix="Automox.VulnUpload",
-        outputs_key_field='id',
-        outputs=result,
-    )
+        result = client.upload_vulnerability_sync_file(org_id, task_type, payload, files)
+
+        result = {
+            'batch_id' : result['id']
+        }
+
+        return CommandResults(
+            outputs_prefix="Automox.VulnUpload",
+            outputs_key_field='batch_id',
+            outputs=result,
+        )
 
 ''' MAIN FUNCTION '''
 def main() -> None:

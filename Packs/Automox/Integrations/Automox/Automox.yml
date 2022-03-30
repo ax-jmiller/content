@@ -670,8 +670,8 @@ script:
       required: false
       default: false
       secret: false
-    - name: csv_file
-      description: 'Base64 encoded CSV data from which to create the vulnerability sync batch.'
+    - name: entry_id
+      description: 'Entry ID of the CSV file to upload'
       type: 'string'
       isArray: false
       required: true
@@ -783,21 +783,6 @@ script:
     deprecated: false
     execution: false
     outputs:
-    - contextPath: Automox.Policies.id
-      description: 'Identifier of policy'
-      type: Number
-    - contextPath: Automox.Policies.organization_id
-      description: 'Identifier of organization'
-      type: Number
-    - contextPath: Automox.Policies.name
-      description: 'Name of policy'
-      type: String
-    - contextPath: Automox.Policies.policy_type_name
-      description: 'Policy type name'
-      type: String
-    - contextPath: Automox.Policies.server_groups
-      description: 'List of identifiers for device groups assigned to the policy'
-      type: Number
   - name: automox-device-delete
     description: "Delete a device from Automox"
     arguments:
