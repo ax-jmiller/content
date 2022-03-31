@@ -386,7 +386,7 @@ def test_module(client: Client) -> str:
 
     message: str = ''
     try:
-        client.list_organizations()
+        client.list_organizations(limit=1, page=0)
         message = 'ok'
     except DemistoException as e:
         if 'Forbidden' in str(e) or 'Authorization' in str(e):

@@ -4,7 +4,7 @@ commonfields:
   version: -1
 configuration:
 - display: Organization ID
-  additionalinfo: When specified, data pulled from Automox will only belong to these organizations; otherwise, the default permissions for this API key will be used.
+  additionalinfo: When specified, data pulled from Automox will only belong to this organization; otherwise, the default permissions for this API key will be used.
   name: org_id
   required: false
   type: 0

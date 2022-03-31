@@ -9,7 +9,7 @@ This integration was integrated and tested as of 2022-03-21 with the Automox API
 
     | **Parameter** | **Description** | **Required** |
     | --- | --- | --- |
-    | Organization ID | A comma-separated list of organization ids. When specified, data pulled from Automox will only belong to these organizations; otherwise, the default permissions for this API key will be used. | False |
+    | Organization ID | A comma-separated list of organization ids. When specified, data pulled from Automox will only belong to this organization; otherwise, the default permissions for this API key will be used. | False |
     | API Key | The API Key to use for connection | True |
     | Trust any certificate (not secure) |  | False |
     | Use system proxy settings |  | False |
