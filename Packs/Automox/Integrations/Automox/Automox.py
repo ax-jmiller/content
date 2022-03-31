@@ -495,7 +495,6 @@ def list_devices(client: Client, args: Dict[str, Any]) -> CommandResults:
         'os_version_id',
         'instance_id',
         'detail',
-        'exception',
         'total_count',
     ]
 
